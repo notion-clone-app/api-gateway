@@ -9,13 +9,26 @@ CYAN   := \033[36m
 GREEN  := \033[32m
 RESET  := \033[0m
 
-.PHONY: all cluster-up cluster-down build load deploy-k8s port-forward logs clean help
+.PHONY: all compose-up compose-down compose-logs cluster-up cluster-down build load deploy-k8s port-forward logs clean help
 
 all: build load deploy-k8s ## Полный цикл: сборка, загрузка и деплой в K8s
 
 help: ## Показать это справочное сообщение
 	@echo "Доступные команды:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-15s$(RESET) %s\n", $$1, $$2}'
+
+compose-up: ## Запустить гейтвей и mock-сервис локально в Docker Compose
+	@echo "$(CYAN)Запуск окружения в Docker Compose...$(RESET)"
+	docker compose up -d --build
+	@echo "$(GREEN)Гейтвей доступен по адресу: http://localhost:8080$(RESET)"
+	@echo "$(GREEN)Попробуйте сделать запрос: curl http://localhost:8080/api/v1/mock-service/test$(RESET)"
+
+compose-down: ## Остановить окружение Docker Compose
+	@echo "$(CYAN)Остановка окружения Docker Compose...$(RESET)"
+	docker compose down
+
+compose-logs: ## Посмотреть логи Docker Compose
+	docker compose logs -f api-gateway
 
 cluster-up: ## Создать локальный кластер Kind
 	@echo "$(CYAN)Создание кластера Kind [$(CLUSTER_NAME)]...$(RESET)"

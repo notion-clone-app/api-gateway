@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    image: golang:1.23-alpine
+    container_name: gateway-dev
+    volumes:
+      - .:/app
+    working_dir: /app
+    ports:
+      - "8080:8080"
+    environment:
+      - APP_ENV=development
+      - CLUSTER_DOMAIN=               # Для Docker Compose домен не нужен
+    command: go run cmd/server/main.go
+    depends_on:
+      - mock-service
+    networks:
+      - notion-network
+
+  # Заглушка микросервиса для проверки маршрутизации
+  # Гейтвей по пути /api/v1/mock-service/... перенаправит запрос сюда
+  mock-service:
+    image: wheelybird/http-echo:latest
+    container_name: mock-service
+    environment:
+      - MSG=Hello from Mock Service!
+    ports:
+      - "8081:8080" # Доступен локально на 8081, а в сети compose как http://mock-service:8080
+    networks:
+      - notion-network
+
+networks:
+  notion-network:
+    driver: bridge
