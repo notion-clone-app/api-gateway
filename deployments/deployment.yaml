@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: default
+  labels:
+    app: api-gateway
+    tier: gateway
+spec:
+  # Количество реплик (копий) гейтвея. K8s автоматически распределит их по нодам.
+  replicas: 2 
+  
+  # Стратегия обновления. RollingUpdate плавно заменяет старые поды на новые без простоя (Zero Downtime).
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1       # Сколько новых подов можно создать сверх нормы при деплое
+      maxUnavailable: 0 # Сколько подов могут быть недоступны в процессе обновления
+
+  selector:
+    matchLabels:
+      app: api-gateway
+
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+      - name: gateway-container
+        # Имя образа, который мы собираем локально (или качаем из Docker Registry)
+        image: my-registry/gateway:local-dev
+        
+        # Для локальной разработки в Kind/Minikube: не качать образ из интернета, если он есть локально
+        imagePullPolicy: IfNotPresent
+        
+        ports:
+        - containerPort: 8080
+          name: http-port
+
+        # Лимиты ресурсов предотвращают утечки памяти и зависание нод (Защита от DoS)
+        resources:
+          limits:
+            cpu: "500m"      # Максимум 0.5 ядра CPU
+            memory: "256Mi"  # Максимум 256 Мегабайт оперативной памяти
+          requests:
+            cpu: "100m"      # Гарантированный резерв CPU при старте
+            memory: "128Mi"  # Гарантированный резерв RAM при старте
+
+        # Переменные окружения, которые считает ваш Go-код через os.Getenv()
+        env:
+        - name: APP_ENV
+          value: "production"
+        - name: CLUSTER_DOMAIN
+          value: "cluster.local" # Внутренний DNS-домен Kubernetes
+        - name: HTTP_PORT
+          value: ":8080"
+
+        # --- НАСТРОЙКА ПРОБ ЖИЗНЕДЕЯТЕЛЬНОСТИ (K8s Health Checks) ---
+        
+        # Readiness Probe: Готов ли под принимать трафик?
+        # Если ваш сервис завис или потерял связь с БД, K8s уберет его из балансировщика.
+        readinessProbe:
+          httpGet:
+            path: /ready     # Эндпоинт в вашем Go-коде
+            port: 8080
+          initialDelaySeconds: 3 # Сколько секунд подождать после старта перед первой проверкой
+          periodSeconds: 5       # Как часто проверять (каждые 5 сек)
+          timeoutSeconds: 2      # Таймаут на ответ от Go
+          failureThreshold: 3    # После скольких ошибок подряд под считается упавшим
+
+        # Liveness Probe: Жив ли сам процесс? 
+        # Если приложение намертво зависло (deadlock), K8s принудительно перезапустит этот контейнер.
+        livenessProbe:
+          httpGet:
+            path: /healthz   # Эндпоинт в вашем Go-коде
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 3
+
+        # --- GRACEFUL SHUTDOWN ---
+        # Когда вы делаете новый деплой, K8s отправляет процессу сигнал SIGTERM.
+        # Этот параметр дает вашему гейтвею 30 секунд, чтобы корректно дописать/дообработать 
+        # все текущие HTTP-запросы (в рамках вашей логики Graceful Shutdown) до того, 
+        # как K8s принудительно убьет контейнер сигналом SIGKILL.
+      terminationGracePeriodSeconds: 30

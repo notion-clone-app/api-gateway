@@ -1,0 +1,7 @@
+apiVersion: kind.x-k8s.io/v1alpha4
+kind: Cluster
+
+# Настройка нод (серверов) кластера
+nodes:
+- role: control-plane # Эта нода совмещает роли Master и Worker ноды
+  image: kindest/node:v1.31.0 # Фиксируем стабильную версию Kubernetes под капотом

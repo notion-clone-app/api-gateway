@@ -11,7 +11,7 @@ RESET  := \033[0m
 
 .PHONY: all compose-up compose-down compose-logs cluster-up cluster-down build load deploy-k8s port-forward logs clean help
 
-all: build load deploy-k8s ## Полный цикл: сборка, загрузка и деплой в K8s
+all: build load deploy-k8s ## Полный цикл для K8s: сборка, загрузка в Kind и деплой манифестов
 
 help: ## Показать это справочное сообщение
 	@echo "Доступные команды:"
@@ -23,9 +23,9 @@ compose-up: ## Запустить гейтвей и mock-сервис локал
 	@echo "$(GREEN)Гейтвей доступен по адресу: http://localhost:8080$(RESET)"
 	@echo "$(GREEN)Попробуйте сделать запрос: curl http://localhost:8080/api/v1/mock-service/test$(RESET)"
 
-compose-down: ## Остановить окружение Docker Compose
+compose-down: ## Остановить окружение Docker Compose и очистить volumes
 	@echo "$(CYAN)Остановка окружения Docker Compose...$(RESET)"
-	docker compose down
+	docker compose down -v --remove-orphans
 
 compose-logs: ## Посмотреть логи Docker Compose
 	docker compose logs -f api-gateway
@@ -50,8 +50,8 @@ deploy-k8s: ## Применить манифесты Deployment и Service в K8
 	@echo "$(CYAN)Деплой гейтвея в Kubernetes...$(RESET)"
 	kubectl apply -f deployments/deployment.yaml -n $(NAMESPACE)
 	kubectl apply -f deployments/service.yaml -n $(NAMESPACE)
-	@echo "$(GREEN)Ожидание готовности подов...$(RESET)"
-	kubectl rollout status deployment/api-gateway -n $(NAMESPACE) --timeout=60s
+	@echo "$(GREEN)Ожидание готовности подов (Rolling Update)...$(RESET)"
+	kubectl rollout status deployment/api-gateway -n $(NAMESPACE) --timeout=90s
 
 port-forward: ## Пробросить порт гейтвея на localhost:8080
 	@echo "$(GREEN)Проброс портов запущен. Гейтвей доступен по адресу: http://localhost:8080$(RESET)"
@@ -62,11 +62,11 @@ logs: ## Посмотреть цветные логи гейтвея (требу
 	@if command -v stern >/dev/null 2>&1; then \
 		stern api-gateway --namespace $(NAMESPACE) --color always; \
 	else \
-		echo "$(CYAN)Утилита stern не найдена. Используем стандартный kubectl logs (без цветов)...$(RESET)"; \
+		echo "$(CYAN)Утилита stern не найдена. Используем стандартный kubectl logs...$(RESET)"; \
 		kubectl logs -l app=api-gateway -n $(NAMESPACE) -f --tail=100; \
 	fi
 
-clean: ## Удалить деплоймент и сервис из кластера
+clean: ## Удалить деплоймент и сервис из кластера (с таймаутом на Graceful Shutdown)
 	@echo "$(CYAN)Удаление ресурсов из K8s...$(RESET)"
-	kubectl delete -f deployments/deployment.yaml -n $(NAMESPACE) --ignore-not-found
-	kubectl delete -f deployments/service.yaml -n $(NAMESPACE) --ignore-not-found
+	kubectl delete -f deployments/deployment.yaml -n $(NAMESPACE) --ignore-not-found --timeout=30s
+	kubectl delete -f deployments/service.yaml -n $(NAMESPACE) --ignore-not-found --timeout=10s
