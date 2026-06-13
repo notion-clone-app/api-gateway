@@ -11,24 +11,52 @@ services:
       - "8080:8080"
     environment:
       - APP_ENV=development
-      - CLUSTER_DOMAIN=               # Для Docker Compose домен не нужен
+      - CLUSTER_DOMAIN=
+      - OTEL_COLLECTOR=tempo:4317 
     command: go run cmd/gateway/main.go
     depends_on:
       - mock-service
+      - tempo
     networks:
       - notion-network
 
-  # Заглушка микросервиса для проверки маршрутизации
-  # Гейтвей по пути /api/v1/mock-service/... перенаправит запрос сюда
   mock-service:
     image: hashicorp/http-echo:1.0.0
     container_name: mock-service
-    # Передаем текст ответа и порт, который должен слушать контейнер
     command: -text="Hello from Mock Service!" -listen=:8080
-    ports:
-      - "8081:8080" # Доступен локально на 8081, а в сети compose как http://mock-service:8080
     networks:
       - notion-network
+
+  # Современный визуализатор 
+  grafana:
+    image: grafana/grafana:11.0.0
+    container_name: grafana
+    ports:
+      - "3000:3000" # Интерфейс будет доступен на http://localhost:3000
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true # Вход без пароля для локальной разработки
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    depends_on:
+      - tempo
+    networks:
+      - notion-network
+
+  # Современное хранилище трейсов (Альтернатива Jaeger)
+  tempo:
+    image: grafana/tempo:2.4.1
+    container_name: tempo
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./deployments/tempo-local.yaml:/etc/tempo.yaml
+    ports:
+      - "4317:4317" # OTLP gRPC port
+    networks:
+      - notion-network
+
+volumes:
+  grafana-storage:
 
 networks:
   notion-network:
