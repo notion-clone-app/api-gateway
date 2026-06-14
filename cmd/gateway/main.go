@@ -36,7 +36,7 @@ func main() {
 		defer tp.Shutdown(context.Background())
 	}
 
-	registry := proxy.NewDynamicRegistry(cfg.ClusterDomain)
+	registry := proxy.NewDynamicRegistry(cfg.ClusterDomain, cfg.AllowedServices)
 
 	// Атомарный флаг готовности (1 = готов, 0 = не готов)
 	// Используем atomic для потокобезопасного переключения между горутинами

@@ -18,7 +18,7 @@ func (m *mockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func TestDynamicRegistry_InterceptRoute_Validation(t *testing.T) {
-	registry := NewDynamicRegistry("")
+	registry := NewDynamicRegistry("", []string{"auth-service"})
 
 	tests := []struct {
 		name           string

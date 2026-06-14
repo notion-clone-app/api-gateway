@@ -12,7 +12,8 @@ services:
     environment:
       - APP_ENV=development
       - CLUSTER_DOMAIN=
-      - OTEL_COLLECTOR=tempo:4317 
+      - OTEL_COLLECTOR_URL=tempo:4317 
+      - ALLOWED_SERVICES=auth-service,mock-service
     command: go run cmd/gateway/main.go
     depends_on:
       - mock-service
