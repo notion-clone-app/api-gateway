@@ -1,33 +1,58 @@
 package config
 
 import (
-	"fmt"
+	"flag"
 	"os"
+	"time"
+
+	"github.com/ilyakaznacheev/cleanenv"
 )
 
 type Config struct {
-	Port          string
-	ClusterDomain string // Базовый DNS суффикс для K8s, например: staging.svc.cluster.local
-	OtelCollector string // Адрес коллектора треков, например: localhost:4317
+	Env        string           `yaml:"env" env-required:"true"`
+	SSOService SsoServiceConfig `yaml:"sso_service" env-required:"true"`
+	HTTP       HttpConfig       `yaml:"http" env-required:"true"`
 }
 
-func MustLoad() (*Config, error) {
-	cfg := &Config{
-		Port:          getEnv("PORT", "8080"),
-		ClusterDomain: getEnv("CLUSTER_DOMAIN", ""), // По умолчанию локально стучимся напрямую по имени
-		OtelCollector: getEnv("OTEL_COLLECTOR_URL", "localhost:4317"),
-	}
-
-	if cfg.Port == "" {
-		return nil, fmt.Errorf("PORT variable is missing")
-	}
-
-	return cfg, nil
+type HttpConfig struct {
+	Port    string        `yaml:"port"`
+	Timeout time.Duration `yaml:"timeout"`
 }
 
-func getEnv(key, fallback string) string {
-	if value, exists := os.LookupEnv(key); exists {
-		return value
+type SsoServiceConfig struct {
+	GRPCAddress string        `yaml:"grpc_address"`
+	Timeout     time.Duration `yaml:"timeout"`
+}
+
+func MustLoad() *Config {
+	path := fetchConfigPath()
+	if path == "" {
+		panic("config path is empty")
 	}
-	return fallback
+
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		panic("config gile does not exist" + path)
+	}
+
+	var cfg Config
+
+	if err := cleanenv.ReadConfig(path, &cfg); err != nil {
+		panic("failed to load config" + err.Error())
+	}
+
+	return &cfg
+}
+
+func fetchConfigPath() string {
+	var res string
+
+	// --config="path/to/config.yaml"
+	flag.StringVar(&res, "config", "", "path to config file")
+	flag.Parse()
+
+	if res == "" {
+		res = os.Getenv("CONFIG_PATH")
+	}
+
+	return res
 }

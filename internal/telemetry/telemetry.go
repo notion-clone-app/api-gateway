@@ -10,7 +10,6 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 )
 
-// InitTracer инициализирует провайдер трассировки OpenTelemetry
 func InitTracer(ctx context.Context, serviceName, collectorAddr string) (*sdktrace.TracerProvider, error) {
 	exporter, err := otlptracegrpc.New(ctx,
 		otlptracegrpc.WithInsecure(),

@@ -1,32 +1,32 @@
+version: "2"
+
 run:
   timeout: 5m
   modules-download-mode: readonly
 
-linters-settings:
-  govet:
-    enable-all: true
-  errcheck:
-    check-blank: true # Проверяет, чтобы ошибки не игнорировались через `_`
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - style
-      - performance
-
 linters:
-  disable-all: true
+  default: none
+  
+  settings:
+    govet:
+      enable-all: true
+    errcheck:
+      check-blank: true 
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
+
   enable:
-    - govet        # Стандартные проверки компилятора (printf, копирование локов)
+    - govet        # Стандартные проверки компилятора
     - errcheck     # Проверка необработанных ошибок
-    - staticcheck  # Огромный набор проверок на баги и производительность
-    - gosimple     # Упрощение избыточного кода
-    - unused       # Поиск неиспользуемого кода (переменные, функции, структуры)
+    - staticcheck  # Набор проверок на баги и производительность
+    - unused       # Поиск неиспользуемого кода
     - ineffassign  # Поиск неэффективных присваиваний
-    - typecheck    # Проверка типов данных
     - gocritic     # Проверки стилистики и микро-оптимизаций
-    - gosec        # Поиск уязвимостей (hardcoded пароли, слабые шифры)
+    - gosec        # Поиск уязвимостей
 
 issues:
-  exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
