@@ -20,7 +20,7 @@ jobs:
       - name: Run Linters
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.61
+          version: latest
 
       - name: Run Unit Tests
         run: go test -v -race -cover ./...
