@@ -18,7 +18,7 @@ jobs:
           cache: false
 
       - name: Run Linters
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v9
         with:
           version: latest
 
