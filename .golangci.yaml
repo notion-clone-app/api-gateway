@@ -4,19 +4,20 @@ run:
   timeout: 5m
   modules-download-mode: readonly
 
-linters-settings:
-  govet:
-    enable-all: true
-  errcheck:
-    check-blank: true 
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - style
-      - performance
-
 linters:
-  disable-all: true
+  default: none
+  
+  settings:
+    govet:
+      enable-all: true
+    errcheck:
+      check-blank: true 
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
+
   enable:
     - govet        # Стандартные проверки компилятора
     - errcheck     # Проверка необработанных ошибок
@@ -28,6 +29,5 @@ linters:
     - gosec        # Поиск уязвимостей
 
 issues:
-  exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
