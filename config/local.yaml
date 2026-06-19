@@ -1,0 +1,9 @@
+env: "local" # local, stage, production
+
+http:
+  port: ":8080"
+  timeout: "5s"
+
+sso_service:
+  grpc_address: "127.0.0.1:8088"
+  timeout: "2s"
