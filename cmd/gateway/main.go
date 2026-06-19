@@ -19,23 +19,22 @@ func main() {
 	cfg := config.MustLoad()
 	log.Printf("Starting gateway in [%s] mode...", cfg.Env)
 
-	// Выносим основную логику в функцию run(), чтобы defer гарантированно отрабатывали
 	if err := run(cfg); err != nil {
 		log.Printf("Critical error: %v", err)
-		os.Exit(1) // Теперь очистка гарантированно завершена до выхода
+		os.Exit(1)
 	}
 }
 
 func run(cfg *config.Config) error {
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel() // Теперь этот defer выполнится корректно при любом выходе из run()
+	defer cancel()
 
 	mux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 
 	err := ssov1.RegisterAuthHandlerFromEndpoint(ctx, mux, cfg.SSOService.GRPCAddress, opts)
 	if err != nil {
-		return err // Вместо log.Fatalf возвращаем ошибку наверх
+		return err
 	}
 
 	srv := &http.Server{
@@ -49,7 +48,7 @@ func run(cfg *config.Config) error {
 		log.Printf("HTTP Gateway is running on %s", cfg.HTTP.Port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Printf("listen error: %s\n", err)
-			cancel() // Отменяем контекст, чтобы завершить приложение, если порт занят
+			cancel()
 		}
 	}()
 
@@ -59,7 +58,7 @@ func run(cfg *config.Config) error {
 
 	log.Println("Shutting down gateway gracefully...")
 	if err := srv.Shutdown(ctx); err != nil {
-		return err // Возвращаем ошибку graceful shutdown
+		return err
 	}
 
 	return nil
