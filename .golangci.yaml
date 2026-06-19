@@ -8,7 +8,7 @@ linters-settings:
   govet:
     enable-all: true
   errcheck:
-    check-blank: true # Проверяет, чтобы ошибки не игнорировались через `_`
+    check-blank: true 
   gocritic:
     enabled-tags:
       - diagnostic
@@ -18,15 +18,14 @@ linters-settings:
 linters:
   disable-all: true
   enable:
-    - govet        # Стандартные проверки компилятора (printf, копирование локов)
+    - govet        # Стандартные проверки компилятора
     - errcheck     # Проверка необработанных ошибок
-    - staticcheck  # Огромный набор проверок на баги и производительность
+    - staticcheck  # Набор проверок на баги и производительность
     - gosimple     # Упрощение избыточного кода
-    - unused       # Поиск неиспользуемого кода (переменные, функции, структуры)
+    - unused       # Поиск неиспользуемого кода
     - ineffassign  # Поиск неэффективных присваиваний
-    - typecheck    # Проверка типов данных
     - gocritic     # Проверки стилистики и микро-оптимизаций
-    - gosec        # Поиск уязвимостей (hardcoded пароли, слабые шифры)
+    - gosec        # Поиск уязвимостей
 
 issues:
   exclude-use-default: false
