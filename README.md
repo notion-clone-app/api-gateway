@@ -2,6 +2,24 @@
 
 Микросервис гейтвея для платформы Notion Clone, написанный на Go. Отвечает за динамическую маршрутизацию запросов к внутренним сервисам, авторизацию, логирование и сбор OpenAPI документации.
 
+Gateway принимает на одном порту HTTP/JSON и native gRPC. Публичные сервисы и необходимость авторизации задаются в `api/services.yaml`; после изменения каталога выполните:
+
+```bash
+make generate
+make test
+```
+
+Для маршрутов с `auth: required` требуется JWT в `Authorization: Bearer <token>`. Сейчас поддерживается HS256; секрет задаётся переменной `JWT_SECRET` и должен совпадать с секретом выпускающего токены SSO. В production TLS должен завершаться на ingress/load balancer либо на самом gateway.
+
+Пример native gRPC запроса через plaintext локальный listener:
+
+```bash
+grpcurl -plaintext \
+  -H "Authorization: Bearer ${TOKEN}" \
+  localhost:8080 \
+  marketing.Marketing/ListDocuments
+```
+
 ## 🛠️ Системные требования
 
 Перед началом работы убедитесь, что у вас установлены следующие инструменты:

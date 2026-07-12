@@ -1,26 +1,23 @@
-package docs
+package http
 
-import (
-	"net/http"
-)
+import stdhttp "net/http"
 
-func RegisterRoutes(mux *http.ServeMux, swaggerJSON string) {
-	mux.HandleFunc("/openapi.json", func(w http.ResponseWriter, r *http.Request) {
+func registerDocs(mux *stdhttp.ServeMux, swaggerJSON string) {
+	mux.HandleFunc("/openapi.json", func(w stdhttp.ResponseWriter, _ *stdhttp.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(stdhttp.StatusOK)
 		_, _ = w.Write([]byte(swaggerJSON))
 	})
 
-	mux.HandleFunc("/docs", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/docs", func(w stdhttp.ResponseWriter, _ *stdhttp.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(getScalarHTML()))
+		w.WriteHeader(stdhttp.StatusOK)
+		_, _ = w.Write([]byte(scalarHTML))
 	})
 }
 
-func getScalarHTML() string {
-	return `<!doctype html>
+const scalarHTML = `<!doctype html>
 <html>
   <head>
     <title>Notion Clone API Docs</title>
@@ -32,12 +29,9 @@ func getScalarHTML() string {
     </style>
   </head>
   <body>
-    <!-- Элемент, куда смонтируется интерфейс документации -->
     <div id="scalar-ui"></div>
-
     <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
     <script>
-      // Правильный синтаксис CDN-версии Scalar
       Scalar.createApiReference('#scalar-ui', {
         url: '/openapi.json',
         theme: 'purple',
@@ -46,4 +40,3 @@ func getScalarHTML() string {
     </script>
   </body>
 </html>`
-}

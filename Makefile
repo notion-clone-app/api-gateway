@@ -9,9 +9,15 @@ CYAN   := \033[36m
 GREEN  := \033[32m
 RESET  := \033[0m
 
-.PHONY: all compose-up compose-down compose-logs cluster-up cluster-down build load deploy-k8s port-forward logs clean help
+.PHONY: all generate test compose-up compose-down compose-logs cluster-up cluster-down build load deploy-k8s port-forward logs clean help
 
 all: build load deploy-k8s ## Полный цикл для K8s: сборка, загрузка в Kind и деплой манифестов
+
+generate: ## Перегенерировать whitelist HTTP/gRPC сервисов
+	go generate ./internal/registry
+
+test: generate ## Перегенерировать registry и запустить тесты
+	go test ./...
 
 help: ## Показать это справочное сообщение
 	@echo "Доступные команды:"

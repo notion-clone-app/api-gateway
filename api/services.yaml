@@ -1,0 +1,34 @@
+version: 1
+
+services:
+  - name: auth
+    upstream: sso
+    grpc_service: auth.Auth
+    auth: public
+
+    go:
+      import: github.com/notion-clone-app/protos/gen/go/proto/sso
+      alias: ssov1
+      register: RegisterAuthHandlerFromEndpoint
+
+    exposure:
+      http: true
+      grpc: true
+
+    owner: team-identity
+
+  - name: marketing
+    upstream: marketing
+    grpc_service: marketing.Marketing
+    auth: required
+
+    go:
+      import: github.com/notion-clone-app/protos/gen/go/proto/marketing
+      alias: marketingv1
+      register: RegisterMarketingHandlerFromEndpoint
+
+    exposure:
+      http: true
+      grpc: true
+
+    owner: team-marketing

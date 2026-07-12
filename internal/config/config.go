@@ -9,9 +9,16 @@ import (
 )
 
 type Config struct {
-	Env        string           `yaml:"env" env-required:"true"`
-	SSOService SsoServiceConfig `yaml:"sso_service" env-required:"true"`
-	HTTP       HttpConfig       `yaml:"http" env-required:"true"`
+	Env       string                    `yaml:"env" env-required:"true"`
+	Upstreams map[string]UpstreamConfig `yaml:"upstreams" env-required:"true"`
+	HTTP      HttpConfig                `yaml:"http" env-required:"true"`
+	Auth      AuthConfig                `yaml:"auth"`
+}
+
+type AuthConfig struct {
+	HMACSecret string `yaml:"hmac_secret" env:"JWT_SECRET"`
+	Issuer     string `yaml:"issuer" env:"JWT_ISSUER"`
+	Audience   string `yaml:"audience" env:"JWT_AUDIENCE"`
 }
 
 type HttpConfig struct {
@@ -19,7 +26,7 @@ type HttpConfig struct {
 	Timeout time.Duration `yaml:"timeout"`
 }
 
-type SsoServiceConfig struct {
+type UpstreamConfig struct {
 	GRPCAddress string        `yaml:"grpc_address"`
 	Timeout     time.Duration `yaml:"timeout"`
 }
