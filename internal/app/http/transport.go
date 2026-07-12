@@ -14,8 +14,6 @@ import (
 	"github.com/notion-clone-app/api-gateway/internal/config"
 	"github.com/notion-clone-app/api-gateway/internal/registry"
 	ssov1 "github.com/notion-clone-app/protos/gen/go/proto/sso"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -52,13 +50,17 @@ func New(
 	registerHealth(router)
 	router.Handle("/", gateway)
 
-	rootHandler := h2c.NewHandler(stdhttp.HandlerFunc(func(w stdhttp.ResponseWriter, r *stdhttp.Request) {
+	rootHandler := stdhttp.HandlerFunc(func(w stdhttp.ResponseWriter, r *stdhttp.Request) {
 		if isGRPCRequest(r) {
 			grpcHandler.ServeHTTP(w, r)
 			return
 		}
 		router.ServeHTTP(w, r)
-	}), &http2.Server{})
+	})
+
+	protocols := new(stdhttp.Protocols)
+	protocols.SetHTTP1(true)
+	protocols.SetUnencryptedHTTP2(true)
 
 	return &Transport{server: &stdhttp.Server{
 		Addr:              cfg.HTTP.Port,
@@ -67,6 +69,7 @@ func New(
 		WriteTimeout:      cfg.HTTP.Timeout,
 		ReadHeaderTimeout: cfg.HTTP.Timeout,
 		IdleTimeout:       60 * time.Second,
+		Protocols:         protocols,
 	}}, nil
 }
 

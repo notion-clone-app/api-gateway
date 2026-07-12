@@ -9,10 +9,10 @@ import (
 )
 
 type Config struct {
+	Auth      AuthConfig                `yaml:"auth"`
 	Env       string                    `yaml:"env" env-required:"true"`
 	Upstreams map[string]UpstreamConfig `yaml:"upstreams" env-required:"true"`
 	HTTP      HttpConfig                `yaml:"http" env-required:"true"`
-	Auth      AuthConfig                `yaml:"auth"`
 }
 
 type AuthConfig struct {

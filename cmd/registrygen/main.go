@@ -14,18 +14,18 @@ import (
 )
 
 type Catalog struct {
-	Version  int       `yaml:"version"`
 	Services []Service `yaml:"services"`
+	Version  int       `yaml:"version"`
 }
 
 type Service struct {
+	Go          GoConfig `yaml:"go"`
 	Name        string   `yaml:"name"`
 	Upstream    string   `yaml:"upstream"`
 	GRPCService string   `yaml:"grpc_service"`
 	Auth        string   `yaml:"auth"`
-	Go          GoConfig `yaml:"go"`
-	Exposure    Exposure `yaml:"exposure"`
 	Owner       string   `yaml:"owner"`
+	Exposure    Exposure `yaml:"exposure"`
 }
 
 type GoConfig struct {
@@ -49,9 +49,11 @@ var identifierPattern = regexp.MustCompile(
 )
 
 func main() {
+	var rootPath string
 	var configPath string
 	var outputPath string
 
+	flag.StringVar(&rootPath, "root", ".", "workspace root")
 	flag.StringVar(
 		&configPath,
 		"config",
@@ -73,12 +75,23 @@ func main() {
 		exitf("-out is required")
 	}
 
-	catalog, err := loadCatalog(configPath)
+	root, err := os.OpenRoot(rootPath)
+	if err != nil {
+		exitf("open workspace root: %v", err)
+	}
+	defer func() {
+		if closeErr := root.Close(); closeErr != nil {
+			exitf("close workspace root: %v", closeErr)
+		}
+	}()
+
+	catalog, err := loadCatalog(root, configPath)
 	if err != nil {
 		exitf("load catalog: %v", err)
 	}
 
-	if err := validateCatalog(catalog); err != nil {
+	err = validateCatalog(catalog)
+	if err != nil {
 		exitf("validate catalog: %v", err)
 	}
 
@@ -88,12 +101,13 @@ func main() {
 
 	publicHTTP := make([]Service, 0, len(catalog.Services))
 	publicGRPC := make([]Service, 0, len(catalog.Services))
-	for _, service := range catalog.Services {
+	for index := range catalog.Services {
+		service := &catalog.Services[index]
 		if service.Exposure.HTTP {
-			publicHTTP = append(publicHTTP, service)
+			publicHTTP = append(publicHTTP, *service)
 		}
 		if service.Exposure.GRPC {
-			publicGRPC = append(publicGRPC, service)
+			publicGRPC = append(publicGRPC, *service)
 		}
 	}
 
@@ -111,20 +125,21 @@ func main() {
 		exitf("format generated source: %v", err)
 	}
 
-	if err := os.WriteFile(outputPath, formatted, 0o644); err != nil {
+	if err = root.WriteFile(outputPath, formatted, 0o600); err != nil {
 		exitf("write generated file: %v", err)
 	}
 }
 
-func loadCatalog(path string) (*Catalog, error) {
-	data, err := os.ReadFile(path)
+func loadCatalog(root *os.Root, path string) (*Catalog, error) {
+	data, err := root.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
 	var catalog Catalog
 
-	if err := yaml.Unmarshal(data, &catalog); err != nil {
+	err = yaml.Unmarshal(data, &catalog)
+	if err != nil {
 		return nil, err
 	}
 
@@ -142,7 +157,8 @@ func validateCatalog(catalog *Catalog) error {
 	names := make(map[string]struct{})
 	aliases := make(map[string]struct{})
 
-	for index, service := range catalog.Services {
+	for index := range catalog.Services {
+		service := &catalog.Services[index]
 		prefix := fmt.Sprintf("services[%d]", index)
 
 		if service.Name == "" {
@@ -208,8 +224,10 @@ func validateCatalog(catalog *Catalog) error {
 	return nil
 }
 
-func exitf(format string, args ...any) {
-	_, _ = fmt.Fprintf(os.Stderr, format+"\n", args...)
+func exitf(message string, args ...any) {
+	if _, err := fmt.Fprintf(os.Stderr, message+"\n", args...); err != nil {
+		os.Exit(2)
+	}
 	os.Exit(1)
 }
 

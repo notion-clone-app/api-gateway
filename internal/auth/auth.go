@@ -27,10 +27,10 @@ type Validator interface {
 }
 
 type HMACValidator struct {
-	secret   []byte
 	issuer   string
 	audience string
 	now      func() time.Time
+	secret   []byte
 }
 
 func NewHMACValidator(secret, issuer, audience string) (*HMACValidator, error) {
@@ -54,7 +54,9 @@ func (v *HMACValidator) Validate(_ context.Context, token string) (*Claims, erro
 	}
 
 	mac := hmac.New(sha256.New, v.secret)
-	_, _ = mac.Write([]byte(parts[0] + "." + parts[1]))
+	if _, err := mac.Write([]byte(parts[0] + "." + parts[1])); err != nil {
+		return nil, ErrUnauthenticated
+	}
 	signature, err := base64.RawURLEncoding.DecodeString(parts[2])
 	if err != nil || !hmac.Equal(signature, mac.Sum(nil)) {
 		return nil, ErrUnauthenticated
@@ -67,7 +69,8 @@ func (v *HMACValidator) Validate(_ context.Context, token string) (*Claims, erro
 		ExpiresAt int64           `json:"exp"`
 		NotBefore int64           `json:"nbf"`
 	}
-	if err := decodeJSON(parts[1], &payload); err != nil {
+	decodeErr := decodeJSON(parts[1], &payload)
+	if decodeErr != nil {
 		return nil, ErrUnauthenticated
 	}
 

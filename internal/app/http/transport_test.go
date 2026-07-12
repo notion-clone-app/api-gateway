@@ -31,7 +31,7 @@ func TestRegisterDocs(t *testing.T) {
 	registerDocs(router, `{"openapi":"3.1.0"}`)
 
 	response := httptest.NewRecorder()
-	request := httptest.NewRequest(stdhttp.MethodGet, "/openapi.json", nil)
+	request := httptest.NewRequest(stdhttp.MethodGet, "/openapi.json", stdhttp.NoBody)
 	router.ServeHTTP(response, request)
 
 	if response.Code != stdhttp.StatusOK {

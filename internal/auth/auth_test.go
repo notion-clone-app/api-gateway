@@ -33,7 +33,10 @@ func TestHMACValidator(t *testing.T) {
 }
 
 func TestAuthorizeRejectsMissingBearerToken(t *testing.T) {
-	validator, _ := NewHMACValidator("01234567890123456789012345678901", "", "")
+	validator, err := NewHMACValidator("01234567890123456789012345678901", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if _, err := Authorize(context.Background(), validator); err == nil {
 		t.Fatal("Authorize() expected an error")
 	}
@@ -57,12 +60,20 @@ func TestBearerTokenFromOutgoingGatewayMetadata(t *testing.T) {
 
 func signedToken(t *testing.T, secret string, claims map[string]any) string {
 	t.Helper()
-	header, _ := json.Marshal(map[string]string{"alg": "HS256", "typ": "JWT"})
-	payload, _ := json.Marshal(claims)
+	header, err := json.Marshal(map[string]string{"alg": "HS256", "typ": "JWT"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload, err := json.Marshal(claims)
+	if err != nil {
+		t.Fatal(err)
+	}
 	encodedHeader := base64.RawURLEncoding.EncodeToString(header)
 	encodedPayload := base64.RawURLEncoding.EncodeToString(payload)
 	unsigned := encodedHeader + "." + encodedPayload
 	mac := hmac.New(sha256.New, []byte(secret))
-	_, _ = mac.Write([]byte(unsigned))
+	if _, err = mac.Write([]byte(unsigned)); err != nil {
+		t.Fatal(err)
+	}
 	return unsigned + "." + base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 }

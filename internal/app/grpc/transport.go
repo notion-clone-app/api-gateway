@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"sync"
 
@@ -47,7 +48,9 @@ func (t *Transport) Close() {
 	t.closeOnce.Do(func() {
 		t.server.Stop()
 		for _, connection := range t.connections {
-			_ = connection.Close()
+			if err := connection.Close(); err != nil {
+				log.Printf("close gRPC upstream connection: %v", err)
+			}
 		}
 	})
 }
@@ -59,7 +62,9 @@ func buildRoutes(cfg *config.Config) (map[string]grpcproxy.Route, []*googlegrpc.
 
 	closeConnections := func() {
 		for _, connection := range connections {
-			_ = connection.Close()
+			if err := connection.Close(); err != nil {
+				log.Printf("close gRPC upstream connection after initialization error: %v", err)
+			}
 		}
 	}
 

@@ -1,19 +1,26 @@
 package http
 
-import stdhttp "net/http"
+import (
+	"log"
+	stdhttp "net/http"
+)
 
 func registerDocs(mux *stdhttp.ServeMux, swaggerJSON string) {
 	mux.HandleFunc("/openapi.json", func(w stdhttp.ResponseWriter, _ *stdhttp.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(stdhttp.StatusOK)
-		_, _ = w.Write([]byte(swaggerJSON))
+		if _, err := w.Write([]byte(swaggerJSON)); err != nil {
+			log.Printf("write OpenAPI response: %v", err)
+		}
 	})
 
 	mux.HandleFunc("/docs", func(w stdhttp.ResponseWriter, _ *stdhttp.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(stdhttp.StatusOK)
-		_, _ = w.Write([]byte(scalarHTML))
+		if _, err := w.Write([]byte(scalarHTML)); err != nil {
+			log.Printf("write API docs response: %v", err)
+		}
 	})
 }
 
