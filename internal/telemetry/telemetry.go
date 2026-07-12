@@ -20,7 +20,7 @@ func InitTracer(ctx context.Context, serviceName, collectorAddr string) (*sdktra
 	}
 
 	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithSampler(sdktrace.AlwaysSample()), // Для продакшена лучше sdktrace.TraceIDRatioBased(0.1)
+		sdktrace.WithSampler(sdktrace.TraceIDRatioBased(0.1)),
 		sdktrace.WithBatcher(exporter),
 		sdktrace.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,

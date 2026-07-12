@@ -4,6 +4,17 @@ http:
   port: ":8080"
   timeout: "5s"
 
-sso_service:
-  grpc_address: "127.0.0.1:8088"
-  timeout: "2s"
+# Only for local development. Override JWT_SECRET in deployed environments.
+auth:
+  hmac_secret: "local-development-secret-change-me"
+  issuer: ""
+  audience: ""
+
+upstreams:
+  sso:
+    grpc_address: "127.0.0.1:8088"
+    timeout: "2s"
+
+  marketing:
+    grpc_address: "127.0.0.1:8081"
+    timeout: "2s"
