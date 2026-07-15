@@ -11,6 +11,21 @@ make test
 
 Для маршрутов с `auth: required` требуется JWT в `Authorization: Bearer <token>`. Сейчас поддерживается HS256; секрет задаётся переменной `JWT_SECRET` и должен совпадать с секретом выпускающего токены SSO. В production TLS должен завершаться на ingress/load balancer либо на самом gateway.
 
+Для HTTP-клиентов ответы `Auth.Register` и `Auth.Login` преобразуются в две `HttpOnly` cookies. Поля `access_expires_at` и `refresh_expires_at` трактуются как Unix timestamp в секундах, а сами токены удаляются из JSON-ответа. Native gRPC-клиенты продолжают получать исходный protobuf response с токенами.
+
+Cross-origin web-клиент должен отправлять запросы с cookies:
+
+```js
+fetch("http://localhost:8080/v1/auth/login", {
+  method: "POST",
+  credentials: "include",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(credentials),
+});
+```
+
+В production используйте `secure: true`, HTTPS и cookie-имена с префиксами `__Host-`/`__Secure-`. При cookie-аутентификации также необходима защита изменяющих запросов от CSRF.
+
 Пример native gRPC запроса через plaintext локальный listener:
 
 ```bash

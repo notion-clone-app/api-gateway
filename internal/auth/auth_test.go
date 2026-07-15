@@ -21,7 +21,7 @@ func TestHMACValidator(t *testing.T) {
 	validator.now = func() time.Time { return time.Unix(100, 0) }
 
 	token := signedToken(t, secret, map[string]any{
-		"sub": "user-1", "iss": "issuer", "aud": "mobile", "exp": 200,
+		"sub": "user-1", "sid": "session-1", "iss": "issuer", "aud": "mobile", "exp": 200,
 	})
 	claims, err := validator.Validate(context.Background(), token)
 	if err != nil {
@@ -29,6 +29,9 @@ func TestHMACValidator(t *testing.T) {
 	}
 	if claims.Subject != "user-1" {
 		t.Fatalf("Subject = %q", claims.Subject)
+	}
+	if claims.SessionID != "session-1" || claims.ExpiresAt != 200 {
+		t.Fatalf("session claims = %#v", claims)
 	}
 }
 

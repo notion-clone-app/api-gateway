@@ -3,12 +3,27 @@ env: "local" # local, stage, production
 http:
   port: ":8080"
   timeout: "5s"
+  cors:
+    allowed_origins:
+      - "http://localhost:3000"
+      - "http://localhost:5173"
+      - "http://127.0.0.1:3000"
+      - "http://127.0.0.1:5173"
+    allow_credentials: true
 
 # Only for local development. Override JWT_SECRET in deployed environments.
 auth:
   hmac_secret: "local-development-secret-change-me"
   issuer: ""
   audience: ""
+  cookies:
+    access_name: "access_token"
+    refresh_name: "refresh_token"
+    access_path: "/"
+    refresh_path: "/v1/auth/refresh"
+    domain: ""
+    same_site: "lax"
+    secure: false
 
 upstreams:
   sso:

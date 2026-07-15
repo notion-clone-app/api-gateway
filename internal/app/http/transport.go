@@ -14,6 +14,7 @@ import (
 	"github.com/notion-clone-app/api-gateway/internal/config"
 	"github.com/notion-clone-app/api-gateway/internal/registry"
 	ssov1 "github.com/notion-clone-app/protos/gen/go/proto/sso"
+	_ "google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -33,13 +34,20 @@ func New(
 	validator auth.Validator,
 	grpcHandler GRPCHandler,
 ) (*Transport, error) {
+	authCookies, err := newAuthCookies(cfg.Auth.Cookies)
+	if err != nil {
+		return nil, fmt.Errorf("configure auth cookies: %w", err)
+	}
+
 	gateway := runtime.NewServeMux(
 		runtime.WithDisableHTTPMethodOverride(),
+		runtime.WithMetadata(authCookies.requestMetadata),
+		runtime.WithForwardResponseOption(authCookies.writeResponse),
 	)
 
 	dialOptions := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithUnaryInterceptor(auth.UnaryClientInterceptor(validator, registry.AuthRequired)),
+		grpc.WithUnaryInterceptor(auth.UnaryClientInterceptor(validator, registry.AuthenticationMode)),
 	}
 	if err := registerGatewayServices(ctx, gateway, cfg, dialOptions); err != nil {
 		return nil, err
@@ -57,6 +65,10 @@ func New(
 		}
 		router.ServeHTTP(w, r)
 	})
+	corsHandler, err := newCORSMiddleware(cfg.HTTP.CORS, rootHandler)
+	if err != nil {
+		return nil, fmt.Errorf("configure CORS: %w", err)
+	}
 
 	protocols := new(stdhttp.Protocols)
 	protocols.SetHTTP1(true)
@@ -64,7 +76,7 @@ func New(
 
 	return &Transport{server: &stdhttp.Server{
 		Addr:              cfg.HTTP.Port,
-		Handler:           rootHandler,
+		Handler:           corsHandler,
 		ReadTimeout:       cfg.HTTP.Timeout,
 		WriteTimeout:      cfg.HTTP.Timeout,
 		ReadHeaderTimeout: cfg.HTTP.Timeout,

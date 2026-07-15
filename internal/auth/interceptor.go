@@ -8,7 +8,15 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type MethodPolicy func(fullMethod string) bool
+type Mode uint8
+
+const (
+	ModePublic Mode = iota
+	ModeAccessToken
+	ModeRefreshToken
+)
+
+type MethodPolicy func(fullMethod string) Mode
 
 func UnaryClientInterceptor(validator Validator, protected MethodPolicy) grpc.UnaryClientInterceptor {
 	return func(
@@ -19,10 +27,12 @@ func UnaryClientInterceptor(validator Validator, protected MethodPolicy) grpc.Un
 		invoker grpc.UnaryInvoker,
 		opts ...grpc.CallOption,
 	) error {
-		if protected(method) {
-			if _, err := Authorize(ctx, validator); err != nil {
+		if protected(method) == ModeAccessToken {
+			claims, err := Authorize(ctx, validator)
+			if err != nil {
 				return status.Error(codes.Unauthenticated, "invalid bearer token")
 			}
+			ctx = WithClaims(ctx, claims)
 		}
 		return invoker(ctx, method, req, reply, cc, opts...)
 	}
