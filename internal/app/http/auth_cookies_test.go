@@ -82,8 +82,8 @@ func TestAuthCookiesClearLogoutResponse(t *testing.T) {
 		t.Fatal(err)
 	}
 	setCookies := recorder.Header().Values("Set-Cookie")
-	assertCookieContains(t, setCookies[0], "access_token=", "Path=/", "Max-Age=0")
-	assertCookieContains(t, setCookies[1], "refresh_token=", "Path=/v1/auth/refresh", "Max-Age=0")
+	assertCookieContains(t, findCookie(t, setCookies, "access_token="), "Path=/", "Max-Age=0")
+	assertCookieContains(t, findCookie(t, setCookies, "refresh_token="), "Path=/v1/auth/refresh", "Max-Age=0")
 }
 
 func TestAuthCookiesRequestMetadata(t *testing.T) {
@@ -157,4 +157,15 @@ func assertCookieContains(t *testing.T, cookie string, expected ...string) {
 			t.Fatalf("cookie %q does not contain %q", cookie, value)
 		}
 	}
+}
+
+func findCookie(t *testing.T, cookies []string, prefix string) string {
+	t.Helper()
+	for _, cookie := range cookies {
+		if strings.HasPrefix(cookie, prefix) {
+			return cookie
+		}
+	}
+	t.Fatalf("cookie with prefix %q was not found", prefix)
+	return ""
 }
