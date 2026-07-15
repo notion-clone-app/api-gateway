@@ -144,7 +144,9 @@ func (c *authCookies) clearResponse(w stdhttp.ResponseWriter) {
 			Secure:   true,
 			SameSite: stdhttp.SameSiteStrictMode,
 		}
-		c.applyCookieConfig(cookie)
+		cookie.Domain = c.domain
+		cookie.Secure = c.secure
+		cookie.SameSite = c.sameSite
 		stdhttp.SetCookie(w, cookie)
 	}
 }
@@ -185,7 +187,9 @@ func (c *authCookies) tokenCookie(name, value, path string, expiresAt int64) (*s
 		Secure:   true,
 		SameSite: stdhttp.SameSiteStrictMode,
 	}
-	c.applyCookieConfig(cookie)
+	cookie.Domain = c.domain
+	cookie.Secure = c.secure
+	cookie.SameSite = c.sameSite
 	if err := cookie.Valid(); err != nil {
 		return nil, err
 	}
@@ -228,20 +232,14 @@ func (c *authCookies) validateCookieNames() error {
 			Secure:   true,
 			SameSite: stdhttp.SameSiteStrictMode,
 		}
-		c.applyCookieConfig(cookie)
+		cookie.Domain = c.domain
+		cookie.Secure = c.secure
+		cookie.SameSite = c.sameSite
 		if err := cookie.Valid(); err != nil {
 			return fmt.Errorf("invalid cookie %q: %w", name, err)
 		}
 	}
 	return nil
-}
-
-func (c *authCookies) applyCookieConfig(cookie *stdhttp.Cookie) {
-	// Cookie literals start with statically verifiable secure defaults. Secure
-	// may be relaxed only by explicit configuration for local HTTP development.
-	cookie.Domain = c.domain
-	cookie.Secure = c.secure
-	cookie.SameSite = c.sameSite
 }
 
 func parseSameSite(value string) (stdhttp.SameSite, error) {
