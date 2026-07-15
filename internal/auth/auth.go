@@ -17,9 +17,11 @@ import (
 var ErrUnauthenticated = errors.New("missing or invalid bearer token")
 
 type Claims struct {
-	Subject  string
-	Issuer   string
-	Audience []string
+	Subject   string
+	SessionID string
+	Issuer    string
+	Audience  []string
+	ExpiresAt int64
 }
 
 type Validator interface {
@@ -64,6 +66,7 @@ func (v *HMACValidator) Validate(_ context.Context, token string) (*Claims, erro
 
 	var payload struct {
 		Subject   string          `json:"sub"`
+		SessionID string          `json:"sid"`
 		Issuer    string          `json:"iss"`
 		Audience  json.RawMessage `json:"aud"`
 		ExpiresAt int64           `json:"exp"`
@@ -75,7 +78,7 @@ func (v *HMACValidator) Validate(_ context.Context, token string) (*Claims, erro
 	}
 
 	now := v.now().Unix()
-	if payload.ExpiresAt == 0 || now >= payload.ExpiresAt || (payload.NotBefore != 0 && now < payload.NotBefore) {
+	if payload.Subject == "" || payload.SessionID == "" || payload.ExpiresAt == 0 || now >= payload.ExpiresAt || (payload.NotBefore != 0 && now < payload.NotBefore) {
 		return nil, ErrUnauthenticated
 	}
 	if v.issuer != "" && payload.Issuer != v.issuer {
@@ -87,7 +90,19 @@ func (v *HMACValidator) Validate(_ context.Context, token string) (*Claims, erro
 		return nil, ErrUnauthenticated
 	}
 
-	return &Claims{Subject: payload.Subject, Issuer: payload.Issuer, Audience: audience}, nil
+	return &Claims{
+		Subject: payload.Subject, SessionID: payload.SessionID, ExpiresAt: payload.ExpiresAt,
+		Issuer: payload.Issuer, Audience: audience,
+	}, nil
+}
+
+func WithClaims(ctx context.Context, claims *Claims) context.Context {
+	return metadata.AppendToOutgoingContext(
+		ctx,
+		"x-user-id", claims.Subject,
+		"x-session-id", claims.SessionID,
+		"x-access-expires-at", fmt.Sprintf("%d", claims.ExpiresAt),
+	)
 }
 
 func BearerToken(ctx context.Context) (string, error) {

@@ -27,7 +27,7 @@ func New(cfg *config.Config, validator auth.Validator) (*Transport, error) {
 		return nil, err
 	}
 
-	proxyHandler := grpcproxy.NewHandler(routes, validator)
+	proxyHandler := grpcproxy.NewHandler(routes, validator, registry.AuthenticationMode)
 	server := googlegrpc.NewServer(
 		grpcproxy.Codec(),
 		googlegrpc.UnknownServiceHandler(proxyHandler.Handle),
@@ -100,8 +100,7 @@ func buildRoutes(cfg *config.Config) (map[string]grpcproxy.Route, []*googlegrpc.
 		}
 
 		routes[service.GRPCService] = grpcproxy.Route{
-			Connection:  connection,
-			RequireAuth: service.AuthRequired,
+			Connection: connection,
 		}
 	}
 

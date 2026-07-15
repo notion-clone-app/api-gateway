@@ -16,14 +16,31 @@ type Config struct {
 }
 
 type AuthConfig struct {
-	HMACSecret string `yaml:"hmac_secret" env:"JWT_SECRET"`
-	Issuer     string `yaml:"issuer" env:"JWT_ISSUER"`
-	Audience   string `yaml:"audience" env:"JWT_AUDIENCE"`
+	HMACSecret string       `yaml:"hmac_secret" env:"JWT_SECRET"`
+	Issuer     string       `yaml:"issuer" env:"JWT_ISSUER"`
+	Audience   string       `yaml:"audience" env:"JWT_AUDIENCE"`
+	Cookies    CookieConfig `yaml:"cookies"`
+}
+
+type CookieConfig struct {
+	AccessName  string `yaml:"access_name"`
+	RefreshName string `yaml:"refresh_name"`
+	AccessPath  string `yaml:"access_path"`
+	RefreshPath string `yaml:"refresh_path"`
+	Domain      string `yaml:"domain"`
+	SameSite    string `yaml:"same_site"`
+	Secure      bool   `yaml:"secure"`
 }
 
 type HttpConfig struct {
 	Port    string        `yaml:"port"`
+	CORS    CORSConfig    `yaml:"cors"`
 	Timeout time.Duration `yaml:"timeout"`
+}
+
+type CORSConfig struct {
+	AllowedOrigins   []string `yaml:"allowed_origins"`
+	AllowCredentials bool     `yaml:"allow_credentials"`
 }
 
 type UpstreamConfig struct {

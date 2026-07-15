@@ -12,17 +12,17 @@ import (
 )
 
 type Route struct {
-	Connection  *grpc.ClientConn
-	RequireAuth bool
+	Connection *grpc.ClientConn
 }
 
 type Handler struct {
 	routes    map[string]Route
 	validator auth.Validator
+	policy    auth.MethodPolicy
 }
 
-func NewHandler(routes map[string]Route, validator auth.Validator) *Handler {
-	return &Handler{routes: routes, validator: validator}
+func NewHandler(routes map[string]Route, validator auth.Validator, policy auth.MethodPolicy) *Handler {
+	return &Handler{routes: routes, validator: validator, policy: policy}
 }
 
 func Codec() grpc.ServerOption { return grpc.ForceServerCodec(rawCodec{}) }
@@ -40,15 +40,22 @@ func (h *Handler) Handle(_ any, downstream grpc.ServerStream) error {
 	if !ok {
 		return status.Error(codes.Unimplemented, "gRPC service is not exposed")
 	}
-	if route.RequireAuth {
-		if _, err := auth.Authorize(downstream.Context(), h.validator); err != nil {
+	ctx := downstream.Context()
+	if h.policy(method) == auth.ModeAccessToken {
+		claims, err := auth.Authorize(ctx, h.validator)
+		if err != nil {
 			return status.Error(codes.Unauthenticated, "invalid bearer token")
 		}
+		ctx = auth.WithClaims(ctx, claims)
 	}
 
-	ctx := downstream.Context()
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
-		ctx = metadata.NewOutgoingContext(ctx, md.Copy())
+		outgoing, _ := metadata.FromOutgoingContext(ctx)
+		merged := md.Copy()
+		for key, values := range outgoing {
+			merged.Set(key, values...)
+		}
+		ctx = metadata.NewOutgoingContext(ctx, merged)
 	}
 	upstream, err := route.Connection.NewStream(ctx, &grpc.StreamDesc{ServerStreams: true, ClientStreams: true}, method, grpc.ForceCodec(rawCodec{}))
 	if err != nil {
