@@ -34,7 +34,7 @@ func New(
 	validator auth.Validator,
 	grpcHandler GRPCHandler,
 ) (*Transport, error) {
-	authCookies, err := newAuthCookies(cfg.Auth.Cookies)
+	authCookies, err := newAuthCookies(&cfg.Auth.Cookies)
 	if err != nil {
 		return nil, fmt.Errorf("configure auth cookies: %w", err)
 	}
@@ -49,7 +49,8 @@ func New(
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithUnaryInterceptor(auth.UnaryClientInterceptor(validator, registry.AuthenticationMode)),
 	}
-	if err := registerGatewayServices(ctx, gateway, cfg, dialOptions); err != nil {
+	err = registerGatewayServices(ctx, gateway, cfg, dialOptions)
+	if err != nil {
 		return nil, err
 	}
 

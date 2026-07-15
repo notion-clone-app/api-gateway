@@ -19,9 +19,9 @@ var ErrUnauthenticated = errors.New("missing or invalid bearer token")
 type Claims struct {
 	Subject   string
 	SessionID string
-	ExpiresAt int64
 	Issuer    string
 	Audience  []string
+	ExpiresAt int64
 }
 
 type Validator interface {

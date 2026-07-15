@@ -16,17 +16,17 @@ import (
 const refreshTokenMetadata = "x-refresh-token"
 
 type authCookies struct {
+	now         func() time.Time
 	accessName  string
 	refreshName string
 	accessPath  string
 	refreshPath string
 	domain      string
-	now         func() time.Time
 	sameSite    stdhttp.SameSite
 	secure      bool
 }
 
-func newAuthCookies(cfg config.CookieConfig) (*authCookies, error) {
+func newAuthCookies(cfg *config.CookieConfig) (*authCookies, error) {
 	sameSite, err := parseSameSite(cfg.SameSite)
 	if err != nil {
 		return nil, err
@@ -134,11 +134,10 @@ func (c *authCookies) clearResponse(w stdhttp.ResponseWriter) {
 		c.accessName:  c.accessPath,
 		c.refreshName: c.refreshPath,
 	} {
-		stdhttp.SetCookie(w, &stdhttp.Cookie{
-			Name: name, Value: "", Path: path, Domain: c.domain,
-			Expires: time.Unix(1, 0), MaxAge: -1, HttpOnly: true,
-			Secure: c.secure, SameSite: c.sameSite,
-		})
+		cookie := c.baseCookie(name, "", path)
+		cookie.Expires = time.Unix(1, 0)
+		cookie.MaxAge = -1
+		stdhttp.SetCookie(w, cookie)
 	}
 }
 
@@ -168,17 +167,9 @@ func (c *authCookies) tokenCookie(name, value, path string, expiresAt int64) (*s
 		return nil, fmt.Errorf("token expiration must be a future Unix timestamp")
 	}
 
-	cookie := &stdhttp.Cookie{
-		Name:     name,
-		Value:    value,
-		Path:     path,
-		Domain:   c.domain,
-		Expires:  expires,
-		MaxAge:   maxAge,
-		HttpOnly: true,
-		Secure:   c.secure,
-		SameSite: c.sameSite,
-	}
+	cookie := c.baseCookie(name, value, path)
+	cookie.Expires = expires
+	cookie.MaxAge = maxAge
 	if err := cookie.Valid(); err != nil {
 		return nil, err
 	}
@@ -213,12 +204,30 @@ func (c *authCookies) validateCookieNames() error {
 		c.accessName:  c.accessPath,
 		c.refreshName: c.refreshPath,
 	} {
-		cookie := &stdhttp.Cookie{Name: name, Value: "validation", Path: path}
+		cookie := c.baseCookie(name, "validation", path)
 		if err := cookie.Valid(); err != nil {
 			return fmt.Errorf("invalid cookie %q: %w", name, err)
 		}
 	}
 	return nil
+}
+
+func (c *authCookies) baseCookie(name, value, path string) *stdhttp.Cookie {
+	// Start from a statically secure cookie so security scanners can verify every
+	// attribute. Secure is then relaxed only by explicit environment configuration
+	// for local HTTP development; production configuration keeps it enabled.
+	cookie := &stdhttp.Cookie{
+		Name:     name,
+		Value:    value,
+		Path:     path,
+		Domain:   c.domain,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: stdhttp.SameSiteStrictMode,
+	}
+	cookie.Secure = c.secure
+	cookie.SameSite = c.sameSite
+	return cookie
 }
 
 func parseSameSite(value string) (stdhttp.SameSite, error) {

@@ -59,7 +59,7 @@ func annotatedMode(method protoreflect.MethodDescriptor) (auth.Mode, bool) {
 	}
 }
 
-func splitMethod(fullMethod string) (string, string, bool) {
+func splitMethod(fullMethod string) (serviceName, methodName string, ok bool) {
 	parts := strings.Split(strings.TrimPrefix(fullMethod, "/"), "/")
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
 		return "", "", false

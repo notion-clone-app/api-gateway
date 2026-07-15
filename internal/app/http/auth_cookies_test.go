@@ -89,8 +89,14 @@ func TestAuthCookiesClearLogoutResponse(t *testing.T) {
 func TestAuthCookiesRequestMetadata(t *testing.T) {
 	cookies := newTestAuthCookies(t)
 	request := httptest.NewRequest(stdhttp.MethodGet, "/v1/documents", stdhttp.NoBody)
-	request.AddCookie(&stdhttp.Cookie{Name: "access_token", Value: "access-value"})
-	request.AddCookie(&stdhttp.Cookie{Name: "refresh_token", Value: "refresh-value"})
+	request.AddCookie(&stdhttp.Cookie{
+		Name: "access_token", Value: "access-value", Path: "/",
+		HttpOnly: true, Secure: true, SameSite: stdhttp.SameSiteStrictMode,
+	})
+	request.AddCookie(&stdhttp.Cookie{
+		Name: "refresh_token", Value: "refresh-value", Path: "/v1/auth/refresh",
+		HttpOnly: true, Secure: true, SameSite: stdhttp.SameSiteStrictMode,
+	})
 
 	result := cookies.requestMetadata(context.Background(), request)
 	if got := result.Get("authorization"); len(got) != 1 || got[0] != "Bearer access-value" {
@@ -116,7 +122,7 @@ func TestAuthCookiesRejectExpiredToken(t *testing.T) {
 }
 
 func TestAuthCookiesRejectInsecureSameSiteNone(t *testing.T) {
-	_, err := newAuthCookies(config.CookieConfig{
+	_, err := newAuthCookies(&config.CookieConfig{
 		AccessName:  "access_token",
 		RefreshName: "refresh_token",
 		AccessPath:  "/",
@@ -130,7 +136,7 @@ func TestAuthCookiesRejectInsecureSameSiteNone(t *testing.T) {
 
 func newTestAuthCookies(t *testing.T) *authCookies {
 	t.Helper()
-	cookies, err := newAuthCookies(config.CookieConfig{
+	cookies, err := newAuthCookies(&config.CookieConfig{
 		AccessName:  "access_token",
 		RefreshName: "refresh_token",
 		AccessPath:  "/",

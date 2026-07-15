@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -23,7 +24,7 @@ func TestGatewayMarshalsGRPCErrorDetails(t *testing.T) {
 	}
 
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest("POST", "/v1/auth/register", nil)
+	request := httptest.NewRequest(http.MethodPost, "/v1/auth/register", http.NoBody)
 	runtime.HTTPError(context.Background(), runtime.NewServeMux(), &runtime.JSONPb{}, recorder, request, grpcStatus.Err())
 
 	body := recorder.Body.String()
